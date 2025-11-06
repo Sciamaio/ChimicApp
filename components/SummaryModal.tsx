@@ -12,9 +12,14 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ summary, onClose, onRestart
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-40 p-4">
       <div className={`bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md text-center border-t-4 ${theme.border}`}>
-        <h2 className={`text-3xl font-bold ${theme.text} mb-4`}>Esercizio Completato!</h2>
+        <h2 className={`text-3xl font-bold ${theme.text} mb-2`}>Esercizio Completato!</h2>
+        {summary.passed !== undefined && (
+          <p className={`text-2xl font-bold ${summary.passed ? 'text-green-400' : 'text-red-400'} -mt-1 mb-4`}>
+            {summary.passed ? 'Promosso!' : 'Bocciato'}
+          </p>
+        )}
         
-        <div className="space-y-4 my-8">
+        <div className="space-y-4 my-6">
           <div className="bg-gray-700 p-4 rounded-lg">
             <p className="text-sm text-gray-400 uppercase">Punteggio</p>
             <p className="text-4xl font-extrabold text-white">{summary.score}</p>
@@ -24,6 +29,12 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ summary, onClose, onRestart
             <p className="text-4xl font-extrabold text-white">{summary.time}</p>
           </div>
         </div>
+
+        {summary.details && (
+          <div className="bg-gray-900 bg-opacity-50 p-4 rounded-lg border border-gray-700">
+            {summary.details}
+          </div>
+        )}
 
         <div className="flex justify-center gap-4 mt-8">
           <button

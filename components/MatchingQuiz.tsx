@@ -48,6 +48,7 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
   
   const [time, setTime] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const [draggedItem, setDraggedItem] = useState<DraggableItem | null>(null);
 
@@ -85,6 +86,7 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
       setGameState('selecting');
       setSelectedProperty(null);
       setTimerActive(false);
+      setShowFeedback(false);
       setTime(0);
   };
 
@@ -100,18 +102,40 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
 
   const handleFinish = () => {
     setTimerActive(false);
-    let correctMatches = 0;
-    dropSlots.forEach(slot => {
-      if (slot.droppedItem && slot.droppedItem.id === slot.elementId) {
-        correctMatches++;
+    setShowFeedback(true);
+
+    setTimeout(() => {
+      let correctMatches = 0;
+      dropSlots.forEach(slot => {
+        if (slot.droppedItem && slot.droppedItem.id === slot.elementId) {
+          correctMatches++;
+        }
+      });
+      const timeString = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
+      onShowSummary({ score: `${correctMatches} / ${NUM_PAIRS}`, time: timeString }, handleNewGame);
+      setShowFeedback(false);
+    }, 3000); // Show summary after 3 seconds
+  };
+  
+  const getSlotFeedbackClass = (slot: DropSlot): string => {
+      if (!showFeedback) {
+        return `${theme.border} border-opacity-50`;
       }
-    });
-    const timeString = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
-    onShowSummary({ score: `${correctMatches} / ${NUM_PAIRS}`, time: timeString }, handleNewGame);
+      if (slot.droppedItem && slot.droppedItem.id === slot.elementId) {
+        return 'border-green-500 bg-green-500/20 border-solid'; // Correct
+      }
+      if (slot.droppedItem && slot.droppedItem.id !== slot.elementId) {
+          return 'border-red-500 bg-red-500/20 border-solid'; // Incorrect
+      }
+      return 'border-red-500 bg-red-500/20 border-solid'; // Empty is also incorrect
   };
 
   // --- Drag and Drop Handlers ---
   const onDragStart = (e: React.DragEvent, item: DraggableItem) => {
+    if (showFeedback) {
+        e.preventDefault();
+        return;
+    }
     setDraggedItem(item);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -122,7 +146,7 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
   
   const onDrop = (e: React.DragEvent, targetSlot: DropSlot) => {
     e.preventDefault();
-    if (!draggedItem) return;
+    if (!draggedItem || showFeedback) return;
 
     const newSlots = [...dropSlots];
     const newOptions = [...draggableOptions];
@@ -154,7 +178,7 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
 
   const onDropBackToOptions = (e: React.DragEvent) => {
      e.preventDefault();
-     if (!draggedItem) return;
+     if (!draggedItem || showFeedback) return;
 
      const sourceSlot = dropSlots.find(s => s.droppedItem?.id === draggedItem.id);
      if (sourceSlot) { // Only handle if it comes from a slot
@@ -214,13 +238,13 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
                    key={`slot-${slot.elementId}`}
                    onDragOver={onDragOver}
                    onDrop={(e) => onDrop(e, slot)}
-                   className={`h-14 flex items-center justify-center p-2 rounded-lg border-2 border-dashed ${theme.border} border-opacity-50 transition-colors ${draggedItem ? 'hover:bg-gray-700/50' : ''}`}
+                   className={`h-14 flex items-center justify-center p-2 rounded-lg border-2 border-dashed transition-colors ${draggedItem && !showFeedback ? 'hover:bg-gray-700/50' : ''} ${getSlotFeedbackClass(slot)}`}
                 >
                     {slot.droppedItem && (
                       <div 
-                        draggable
+                        draggable={!showFeedback}
                         onDragStart={(e) => onDragStart(e, slot.droppedItem!)}
-                        className={`w-full h-full flex items-center justify-center text-center font-medium bg-gray-600 text-white rounded cursor-grab active:cursor-grabbing`}
+                        className={`w-full h-full flex items-center justify-center text-center font-medium bg-gray-600 text-white rounded ${!showFeedback ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                       >
                          <ClickableTruncatedText text={slot.droppedItem.content} maxLength={25} onShowTooltip={onShowTooltip}/>
                       </div>
@@ -239,9 +263,9 @@ const MatchingQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSum
           {draggableOptions.map((option) => (
             <div
               key={`option-${option.id}`}
-              draggable
+              draggable={!showFeedback}
               onDragStart={(e) => onDragStart(e, option)}
-              className="h-14 w-full flex items-center justify-center text-center p-2 font-medium bg-gray-700 text-white rounded cursor-grab active:cursor-grabbing hover:bg-gray-600 transition-colors"
+              className={`h-14 w-full flex items-center justify-center text-center p-2 font-medium bg-gray-700 text-white rounded transition-colors ${!showFeedback ? 'cursor-grab active:cursor-grabbing hover:bg-gray-600' : 'cursor-default opacity-70'}`}
             >
                <ClickableTruncatedText text={option.content} maxLength={25} onShowTooltip={onShowTooltip}/>
             </div>

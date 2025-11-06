@@ -12,6 +12,26 @@ const quizThemes = {
   'crossword': { main: 'indigo', bg: 'bg-indigo-900', text: 'text-indigo-300', border: 'border-indigo-500', ring: 'ring-indigo-500', button: 'bg-indigo-600 hover:bg-indigo-700' },
 };
 
+// Component definition moved to the top level of the module for stability.
+const NavButton: React.FC<{
+  quizType: QuizType;
+  label: string;
+  activeQuiz: QuizType | null;
+  setActiveQuiz: (quizType: QuizType) => void;
+}> = ({ quizType, label, activeQuiz, setActiveQuiz }) => {
+  const theme = quizThemes[quizType];
+  const isActive = activeQuiz === quizType;
+  return (
+    <button
+      onClick={() => setActiveQuiz(quizType)}
+      className={`px-4 py-2 font-semibold rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${isActive ? `${theme.bg} ${theme.text} shadow-lg scale-105` : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+        } ${theme.ring}`}
+    >
+      {label}
+    </button>
+  );
+};
+
 function App() {
   const { elements, loading, error } = useElementData();
   const [activeQuiz, setActiveQuiz] = useState<QuizType | null>(null);
@@ -65,25 +85,11 @@ function App() {
         );
     }
   };
-  
-  const NavButton: React.FC<{ quizType: QuizType, label: string }> = ({ quizType, label }) => {
-    const theme = quizThemes[quizType];
-    const isActive = activeQuiz === quizType;
-    return (
-      <button
-        onClick={() => setActiveQuiz(quizType)}
-        className={`px-4 py-2 font-semibold rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${isActive ? `${theme.bg} ${theme.text} shadow-lg scale-105` : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          } ${theme.ring}`}
-      >
-        {label}
-      </button>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 lg:p-8 font-sans">
       
-      {isSummaryVisible && summaryData && (
+      {isSummaryVisible && summaryData && activeQuiz && (
         <SummaryModal 
           summary={summaryData}
           onClose={() => setIsSummaryVisible(false)}
@@ -91,7 +97,7 @@ function App() {
             setIsSummaryVisible(false);
             restartAction?.();
           }}
-          theme={quizThemes[activeQuiz!]}
+          theme={quizThemes[activeQuiz]}
         />
       )}
 
@@ -119,9 +125,9 @@ function App() {
       </header>
 
       <nav className="flex justify-center flex-wrap gap-4 mb-8">
-        <NavButton quizType="multiple-choice" label="Risposta Multipla" />
-        <NavButton quizType="matching" label="Associazione" />
-        <NavButton quizType="crossword" label="Cruciverba" />
+        <NavButton quizType="multiple-choice" label="Risposta Multipla" activeQuiz={activeQuiz} setActiveQuiz={setActiveQuiz} />
+        <NavButton quizType="matching" label="Associazione" activeQuiz={activeQuiz} setActiveQuiz={setActiveQuiz} />
+        <NavButton quizType="crossword" label="Cruciverba" activeQuiz={activeQuiz} setActiveQuiz={setActiveQuiz} />
       </nav>
 
       <main className="transition-opacity duration-500">

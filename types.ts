@@ -1,3 +1,6 @@
+// Fix: Import ReactNode to resolve 'Cannot find namespace React' error.
+import type { ReactNode } from 'react';
+
 export interface ChemicalElement {
   Elemento: string;
   Z: number;
@@ -14,8 +17,9 @@ export type QuizType = 'multiple-choice' | 'matching' | 'crossword';
 
 export type CrosswordGrid = (string | null)[][];
 
-// Fix: Add missing UserGrid type export.
-export type UserGrid = (string | null)[][];
+// A user's grid can store letters that are hints or corrected answers.
+export type UserGrid = ({ letter: string; isHint?: boolean; isCorrected?: boolean } | null)[][];
+
 
 export interface CrosswordClue {
   number: number;
@@ -38,6 +42,9 @@ export interface Theme {
 export interface SummaryData {
   score: string;
   time: string;
+  // Fix: Use the imported `ReactNode` type instead of `React.ReactNode`.
+  details?: ReactNode;
+  passed?: boolean;
 }
 
 export interface QuizComponentProps {

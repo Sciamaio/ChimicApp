@@ -30,14 +30,22 @@ const clueTemplates: ClueTemplate[] = [
 ];
 
 /**
- * Generates a random clue for a given chemical element.
+ * Generates a random clue for a given chemical element, avoiding existing clues.
  * @param element The chemical element to generate a clue for.
- * @returns A string containing the clue.
+ * @param existingCluesToAvoid An array of clue strings that should not be generated.
+ * @returns A string containing the new clue, or null if no unique clues are left.
  */
-export const getRandomClueForElement = (element: ChemicalElement): string => {
-    const availableTemplates = clueTemplates.filter(t => element[t.key] && String(element[t.key]).trim() !== '');
+export const getRandomClueForElement = (element: ChemicalElement, existingCluesToAvoid: string[] = []): string | null => {
+    const availableTemplates = clueTemplates.filter(t => {
+        const value = String(element[t.key]);
+        if (!value || value.trim() === '') return false;
+        
+        const potentialClue = t.template(value);
+        return !existingCluesToAvoid.includes(potentialClue);
+    });
+
     if (availableTemplates.length === 0) {
-        return `Elemento con simbolo ${element.Simbolo}`; // Fallback clue
+        return null; // No new unique clues available
     }
 
     const randomTemplate = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];

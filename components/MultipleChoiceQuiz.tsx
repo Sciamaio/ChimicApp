@@ -30,7 +30,7 @@ const propertyLabels = {
 const MultipleChoiceQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onShowSummary, onShowTooltip }) => {
   const [questions, setQuestions] = useState<McqQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [score, setScore] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<(string | null)[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [time, setTime] = useState(0);
@@ -64,7 +64,7 @@ const MultipleChoiceQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onS
     
     setQuestions(newQuestions);
     setCurrentQuestionIndex(0);
-    setScore(0);
+    setUserAnswers(Array(newQuestions.length).fill(null));
     setSelectedAnswer(null);
     setFeedback(null);
     setTime(0);
@@ -90,9 +90,13 @@ const MultipleChoiceQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onS
   const handleAnswerSelect = (answer: string) => {
     if (feedback) return; 
     setSelectedAnswer(answer);
+    
+    const newAnswers = [...userAnswers];
+    newAnswers[currentQuestionIndex] = answer;
+    setUserAnswers(newAnswers);
+
     if (answer === questions[currentQuestionIndex].correctAnswer) {
       setFeedback('correct');
-      setScore(prev => prev + 1);
     } else {
       setFeedback('incorrect');
     }
@@ -110,8 +114,60 @@ const MultipleChoiceQuiz: React.FC<QuizComponentProps> = ({ elements, theme, onS
 
   const handleFinish = () => {
     setTimerActive(false);
+
+    let correct = 0;
+    let incorrect = 0;
+    const incorrectDetails: { question: string; yourAnswer: string; correctAnswer: string }[] = [];
+
+    questions.forEach((q, i) => {
+      const userAnswer = userAnswers[i];
+      if (userAnswer === q.correctAnswer) {
+        correct++;
+      } else if (userAnswer !== null) {
+        incorrect++;
+        incorrectDetails.push({
+          question: q.clue,
+          yourAnswer: userAnswer,
+          correctAnswer: q.correctAnswer,
+        });
+      }
+    });
+
+    const unanswered = NUM_QUESTIONS - correct - incorrect;
+    const finalScore = correct * 3 - incorrect;
     const timeString = `${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`;
-    onShowSummary({ score: `${score} / ${NUM_QUESTIONS}`, time: timeString }, setupGame);
+
+    const details = (
+      <div className="text-left text-sm mt-4 space-y-2 text-gray-300">
+        <p><strong>Corrette:</strong> {correct} (+{correct * 3} punti)</p>
+        <p><strong>Errate:</strong> {incorrect} (-{incorrect} punti)</p>
+        <p><strong>Non date:</strong> {unanswered} (0 punti)</p>
+        
+        {incorrectDetails.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-gray-600">
+            <h4 className="font-bold mb-2 text-white">Dettaglio errori:</h4>
+            <ul className="space-y-3 max-h-40 overflow-y-auto pr-2">
+              {incorrectDetails.map((detail, i) => (
+                <li key={i}>
+                  <p className="font-semibold text-gray-400">
+                     <ClickableTruncatedText text={detail.question} maxLength={100} onShowTooltip={onShowTooltip} />
+                  </p>
+                  <p className="pl-4">La tua risposta: <span className="text-red-400 font-bold">{detail.yourAnswer}</span></p>
+                  <p className="pl-4">Risposta corretta: <span className="text-green-400 font-bold">{detail.correctAnswer}</span></p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+
+    onShowSummary({
+      score: `${finalScore} / 30`,
+      time: timeString,
+      details: details,
+      passed: finalScore >= 18,
+    }, setupGame);
   };
   
   if (questions.length === 0) {
